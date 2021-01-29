@@ -1,0 +1,662 @@
+
+var DynamicClones = pc.createScript('dynamicClones');
+DynamicClones.attributes.add('bufferAmount', { type:'number', min:0, max:1024, default:128 });
+
+DynamicClones.prototype.emptyFunc = function() {};
+
+/*
+DynamicClones.prototype._duplicateNodeGraph = function (node) {
+    var newNode = node.clone();
+    for (var idx = 0; idx < node._children.length; idx++) {
+        newNode.addChild(this._duplicateNodeGraph(node._children[idx]));
+    }
+    return newNode;
+};
+
+DynamicClones.prototype.cloneMeshInstance = function(instance) {
+    var ng = this._duplicateNodeGraph(instance.node);
+    if (instance.node.parent) instance.node.parent.addChild(ng);
+    var cm = new pc.MeshInstance(ng, instance.mesh, instance.material);
+    cm.cull = instance.cull;
+    return cm;
+};
+*/
+
+DynamicClones.prototype.setInstanceLen = function(batch, len) {
+    batch.instanceLen = len;
+    batch.meshInstance.mesh.primitive[0].count = batch.pCount*len;
+};
+
+DynamicClones.prototype.popInstanceLen = function(batch) {
+    var len = batch.instanceLen - 1;
+    batch.instanceLen = len;
+    batch.meshInstance.mesh.primitive[0].count = batch.pCount*len;
+};
+
+DynamicClones.prototype.setPositionAtIndex = function(i, x,y,z) {
+    var b = this.batches.length;
+    var base  = i * 16;
+    while(--b > -1) {
+        var batch = this.batches[b];
+        var mp = batch.meshInstance.skinInstance.matrixPalette;
+        var pe = batch.worldTransform.data;
+        mp[base + 12] =  x + pe[12];
+        mp[base + 13] =  y + pe[13];
+        mp[base + 14] =  z + pe[14];
+    }
+};
+
+DynamicClones.prototype.pushPosition = function(x,y,z) {
+    var b = this.batches.length;
+    var base  = this.batches[0].instanceLen * 16;
+    while(--b > -1) {
+        var batch = this.batches[b];
+        var mp = batch.meshInstance.skinInstance.matrixPalette;
+        var pe = batch.worldTransform.data;
+        mp[base + 12] =  x + pe[12];
+        mp[base + 13] =  y + pe[13];
+        mp[base + 14] =  z + pe[14];
+        batch.meshInstance.mesh.primitive[0].count = batch.pCount*(++batch.instanceLen);
+    }
+};
+
+DynamicClones.prototype.popClone = function() {
+    var b = this.batches.length;
+    while(--b > -1) {
+        var batch = this.batches[i];
+         var len = batch.instanceLen - 1;
+        batch.instanceLen = len;
+        batch.meshInstance.mesh.primitive[0].count = batch.pCount*len;
+    }
+};
+
+DynamicClones.prototype.deletePositionAtIndex = function(i) {
+   var b = this.batches.length;
+    var batch;
+     var lastIndex = -1;
+    if (i === this.batches[0].instanceLen -1) {
+        /*
+     while(--b > -1) {
+        this.popInstanceLen(this.batches[b]);
+     } 
+     */
+      return lastIndex;
+    }
+        
+     var base  = i * 16;
+   
+    lastIndex =this.batches[0].instanceLen -1;
+    
+    while(--b > -1) {
+        batch = this.batches[b];
+        var lastBase =  lastIndex * 16;
+        var mp = batch.meshInstance.skinInstance.matrixPalette;
+        mp[base + 12] = mp[lastBase+12];
+        mp[base + 13] = mp[lastBase+13];
+        mp[base + 14] = mp[lastBase+14];
+       // this.popInstanceLen(batch);
+    }
+    return lastIndex;
+};
+
+DynamicClones.prototype.deleteTransformAtIndex = function(i) {
+   var b = this.batches.length;
+    var batch;
+       var lastIndex = -1;
+    if (i === this.batches[0].instanceLen - 1) {
+      //  console.log("OUT");
+        /*
+     while(--b > -1) {
+        this.popInstanceLen(this.batches[b]);
+     } 
+        */
+      return lastIndex;
+    }
+        
+     var base  = i * 16;
+     lastIndex =this.batches[0].instanceLen -1;
+    while(--b > -1) {
+        batch = this.batches[b];
+        var lastBase = lastIndex * 16;
+        var mp = batch.meshInstance.skinInstance.matrixPalette;
+        mp[base] = mp[lastBase];
+        mp[base + 1] = mp[lastBase+1];
+        mp[base + 2] = mp[lastBase+2];
+        mp[base + 3] = mp[lastBase+3];
+        mp[base + 4] = mp[lastBase+4];
+        mp[base + 5] = mp[lastBase+5];
+        mp[base + 6] = mp[lastBase+6];
+        mp[base + 7] = mp[lastBase+7];
+        mp[base + 8] = mp[lastBase+8];
+        mp[base + 9] = mp[lastBase+9];
+        mp[base + 10] = mp[lastBase+10];
+        mp[base + 11] = mp[lastBase+11];
+        mp[base + 12] = mp[lastBase+12];
+        mp[base + 13] = mp[lastBase+13];
+        mp[base + 14] = mp[lastBase+14];
+        mp[base + 15] = mp[lastBase+15];
+        
+        //break;
+    }
+    return true;
+};
+
+
+DynamicClones.prototype.getPositionAtIndex = function(i, pos) {
+    pos = pos ? pos : new pc.Vec3();
+    var batch = this.batches[0];
+    var mp = batch.meshInstance.skinInstance.matrixPalette;
+    var pe = batch.worldTransform.data;
+   
+    var base;
+    base = i * 16;
+    pos.x = mp[base+12] - pe[12];
+    pos.y = mp[base+13] - pe[13];
+    pos.z = mp[base+14] - pe[14];
+    return pos;
+};
+
+DynamicClones.prototype.setTransformDataAtIndex = function(i, pe) {
+    var b = this.batches.length;
+    var base = i * 16;
+   var batch;
+   var mp = batch.meshInstance.skinInstance.matrixPalette;
+   while(--b > -1) {
+        batch = this.batches[b]; 
+        
+        mp[base] = pe[0];
+        mp[base + 1] = pe[1];
+        mp[base + 2] = pe[2];
+        mp[base + 3] = pe[3];
+        mp[base + 4] = pe[4];
+        mp[base + 5] = pe[5];
+        mp[base + 6] = pe[6];
+        mp[base + 7] = pe[7];
+        mp[base + 8] = pe[8];
+        mp[base + 9] = pe[9];
+        mp[base + 10] = pe[10];
+        mp[base + 11] = pe[11];
+        mp[base + 12] = pe[12];
+        mp[base + 13] = pe[13];
+        mp[base + 14] = pe[14];
+        mp[base + 15] = pe[15];
+       
+       //break;
+    }
+};
+
+
+
+DynamicClones.prototype.updateMatrixPaletteAtWithPos = function(batch, i, x,y,z) {
+    var mp = batch.meshInstance.skinInstance.matrixPalette;
+    var base;
+    var pe = batch.worldTransform.data;
+    base = i * 16;
+    mp[base] = pe[0];
+    mp[base + 1] = pe[1];
+    mp[base + 2] = pe[2];
+    mp[base + 3] = pe[3];
+    mp[base + 4] = pe[4];
+    mp[base + 5] = pe[5];
+    mp[base + 6] = pe[6];
+    mp[base + 7] = pe[7];
+    mp[base + 8] = pe[8];
+    mp[base + 9] = pe[9];
+    mp[base + 10] = pe[10];
+    mp[base + 11] = pe[11];
+    mp[base + 12] =  x + pe[12];
+    mp[base + 13] =  y + pe[13];
+    mp[base + 14] =  z + pe[14];
+    mp[base + 15] = pe[15];
+};
+
+DynamicClones.prototype.updateMatrixPaletteAtWith = function(batch, i, pe) {
+     var mp = batch.meshInstance.skinInstance.matrixPalette;
+     var base;
+     base = i * 16;
+    mp[base] = pe[0];
+    mp[base + 1] = pe[1];
+    mp[base + 2] = pe[2];
+    mp[base + 3] = pe[3];
+    mp[base + 4] = pe[4];
+    mp[base + 5] = pe[5];
+    mp[base + 6] = pe[6];
+    mp[base + 7] = pe[7];
+    mp[base + 8] = pe[8];
+    mp[base + 9] = pe[9];
+    mp[base + 10] = pe[10];
+    mp[base + 11] = pe[11];
+    mp[base + 12] = pe[12];
+    mp[base + 13] = pe[13];
+    mp[base + 14] = pe[14];
+    mp[base + 15] = pe[15];
+};
+
+
+
+DynamicClones.prototype.finaliseMatrixPalette = function(skinInstance) {
+
+    skinInstance.boneTexture.lock();
+    skinInstance.boneTexture.unlock();
+};
+
+DynamicClones.prototype.finaliseAllMatrixPalettes = function() {
+    var i = this.batches.length;
+    while(--i > -1) {
+        this.finaliseMatrixPalette(this.batches[i].meshInstance.skinInstance);
+    }
+};
+
+
+DynamicClones.prototype.updateMatrixPalette = function() {
+   // console.log("Nothing");
+    //console.log( this.bones[0].getWorldTransform() );
+    /*
+    var pe;
+    var mp = this.matrixPalette;
+    var base;
+
+    for (var i = this.instanceLen - 1; i >= 0; i--) {
+        pe = this.bones[i].getWorldTransform().data;
+
+        // Copy the matrix into the palette, ready to be sent to the vertex shader
+        base = i * 16;
+        mp[base] = pe[0];
+        mp[base + 1] = pe[1];
+        mp[base + 2] = pe[2];
+        mp[base + 3] = pe[3];
+        mp[base + 4] = pe[4];
+        mp[base + 5] = pe[5];
+        mp[base + 6] = pe[6];
+        mp[base + 7] = pe[7];
+        mp[base + 8] = pe[8];
+        mp[base + 9] = pe[9];
+        mp[base + 10] = pe[10];
+        mp[base + 11] = pe[11];
+        mp[base + 12] = pe[12];
+        mp[base + 13] = pe[13];
+        mp[base + 14] = pe[14];
+        mp[base + 15] = pe[15];
+    }
+   
+    
+    if (this.device.supportsBoneTextures) {
+        this.boneTexture.lock();
+        this.boneTexture.unlock();
+    }
+     */
+};
+
+DynamicClones.prototype.validateBufferAmt = function(amt) {
+    var meshInstances = this.entity.model.meshInstances;
+    var maxInstanceCount = this.app.graphicsDevice.supportsBoneTextures ? 1024 : this.app.graphicsDevice.boneLimit;
+    var len = meshInstances.length;
+    var i;
+    var m;
+    var pCount = 0;
+    var vertexCount = 0;
+    for (i =0; i < len; i++) {
+        m = meshInstances[i];
+        var vTest =  m.mesh.vertexBuffer.getNumVertices();
+        vertexCount = vTest > vertexCount ? vTest : vertexCount;
+        pCount = m.mesh.primitive[0].count > pCount ?  m.mesh.primitive[0].count : pCount;
+    }
+    var vLimit = Math.floor(0xFFFF / vertexCount);
+    
+    this.maxBufferAmount = Math.min(vLimit, maxInstanceCount);
+    return Math.min(amt, this.maxBufferAmount);
+};
+
+// initialize code called once per entity
+DynamicClones.prototype.initialize = function() {
+    this.activeCamera = this.app.root.findByName("Camera");
+    var fru;
+    this.frustum = fru = new altern.CullingPlane();
+    fru = fru.next = new altern.CullingPlane();
+    fru = fru.next = new altern.CullingPlane();
+    fru = fru.next = new altern.CullingPlane();
+    fru = fru.next = new altern.CullingPlane();
+    fru = fru.next = new altern.CullingPlane();
+    this.culler = new altern.DefaultCulling();
+    this.culler.frustum = this.frustum;
+    
+    this.maxBufferAmount = 0;
+    this.useBufferAmount = this.validateBufferAmt(this.bufferAmount);
+    this.batchReps = [];
+    this.entity.setPosition(0,0,0);
+    
+    this.growth = 0;
+
+    this.refBoundingBox = this.getBoundingBox();
+    this.refPos = this.entity.getPosition().clone();
+    this.refPos.sub(this.entity.model.meshInstances[0]._aabb.center);  // aabb center to position vector
+    
+    this.createBatches(1);  // Math.floor(this.bufferAmount/maxBufferAmount)
+    
+    this.entity.setRotation(0,0,0);
+    this.entity.setLocalScale(1,1,1);
+};
+
+DynamicClones.prototype.createBatches = function(len) {
+    var i;
+    for (i=this.batchReps.length; i< len; i++) {
+        this.batchReps.push(this.createBatch());
+    }
+};
+
+DynamicClones.prototype.grow = function(amountToAdd) {
+    this.growth += amountToAdd;
+    if (this.growth >= this.bufferAmount ) {
+
+        this.bufferAmount = this.growth;
+    } 
+    
+    if (this.growth >= this.useBufferAmount * batchReps.length) {
+        createBatches(Math.floor(this.growth / this.useBufferAmount));
+        
+    }
+};
+
+DynamicClones.prototype.spawnCloneAt = function(x, y, z, deferFinalise) {
+    var len = this.batches.length;
+    var i;
+    var b;
+    var bi;
+    for (i=0; i< len; i++) {
+        b = this.batches[i];
+        this.setInstanceLen(b, b.instanceLen);
+        this.updateMatrixPaletteAtWithPos(b, b.instanceLen, x, y, z);
+        b.instanceLen++;
+    }
+    
+    if (!deferFinalise && this.app.graphicsDevice.supportsBoneTextures) {
+        this.finaliseAllMatrixPalettes();
+    }
+};
+
+DynamicClones.prototype.createBatch = function(amountToBuffer) {
+    amountToBuffer = amountToBuffer ? amountToBuffer : this.useBufferAmount;
+    var meshInstances = this.entity.model.meshInstances;
+    var len = meshInstances.length;
+    var i;
+    var m;
+    var b;
+    
+    this.batches = [];
+    
+    var batchMeshInstances = [];
+    var dummyArrayGen = [];
+    // NOTE: we assume all necessary meshInstances have been combined and each meshInstance requires a unique batch on it's own
+    for (i =0; i < len; i++) {
+        dummyArrayGen.length = 0;
+        m = meshInstances[i];
+        for (b = 0; b < amountToBuffer; b++) {
+          dummyArrayGen.push(m);
+        }
+         var pUpdate = pc.BatchManager.prototype.update;
+        pc.BatchManager.prototype.update = this.emptyFunc;
+        var lastOneTest;
+        batch= this.app.batcher.create(dummyArrayGen, true, Math.random());
+        pc.BatchManager.prototype.update = pUpdate;
+        // workaround playcanvas: we are going to remove off the batch from the Batcher's official _batchlist, and manage this batch on our own!
+        this.app.batcher._batchList.splice(this.app.batcher._batchList.indexOf(batch), 1);
+        // workaround properties:
+        batch.pCount = m.mesh.primitive[0].count;
+        batch.origMeshInstances.length = 1; // save memory
+        batch.worldTransform = m.node.getWorldTransform().clone();
+        // will reinstate this later for dynamic node/bone references
+        batch.meshInstance.skinInstance.bones = null;
+        batch.meshInstance.skinInstance.updateMatrixPalette = this.emptyFunc;     
+       
+        batch.meshInstance.cull = false;   // culling will be handled by eternal ICuller implementation (if any)
+        this.setInstanceLen(batch, 0);  // batch is resziable on demand and we can update the batch matrixPalette at any index
+        
+        this.batches.push(batch);
+        batchMeshInstances.push(batch.meshInstance);
+    }
+    
+    this.batchStride = len;
+    
+    this.entity.model.removeModelFromLayers(this.entity.model.model);
+    
+    var layers = this.entity.model.layers;
+
+    for (i=0; i<layers.length; i++) {
+        this.app.scene.layers.getLayerById(layers[i]).addMeshInstances(batchMeshInstances);
+    }
+    
+    return this.batches;
+};
+
+DynamicClones.prototype.getBoundingBox = function() {
+    var meshInstances = this.entity.model.meshInstances; 
+    var i;
+    var aabb = new pc.BoundingBox();
+    var len = meshInstances.length;
+    aabb.add(meshInstances[0].aabb);
+    for(i =1; i < len; i++) {
+     aabb.add(meshInstances[i].aabb);
+    }
+    
+    var min = aabb.getMin();
+    var max = aabb.getMax();
+    
+ 
+    var bb = new altern.BoundBox();
+    bb.minX = min.x;
+    bb.minY = min.y;
+    bb.minZ = min.z;
+    bb.maxX = max.x;
+    bb.maxY = max.y;
+    bb.maxZ = max.z;
+    return bb;
+    
+};
+
+// for testing only
+// /*
+DynamicClones.prototype.postInitialize = function() {
+    //this.entity.model.meshInstances.
+    var i;
+    this.testCount = this.useBufferAmount; //this.validateBufferAmt(this.bufferAmount);
+    var positions = [];
+    this.instances = new Float32Array(this.testCount<<2);
+    this.instanceIndices = new Int32Array(this.testCount);
+    
+    var bb = this.refBoundingBox;
+    var posRef = this.refPos;  // aabb center to position vector
+  
+    this.testVec = new pc.Vec3();
+    for (i=0; i< this.testCount; i++) {
+        this.spawnCloneAt(i,0,i, true);
+        positions.push(i-posRef.x);
+        positions.push(0-posRef.y);
+        positions.push(i-posRef.z);
+        this.instances[(i<<2)] = i;
+        this.instances[(i<<2)+1] = 0;
+        this.instances[(i<<2)+2] = i;
+        this.instances[(i<<2)+3] = -1;
+    }
+    
+    var batches = this.batches;
+     i = batches.length;
+    while(--i >=0) {
+        this.setInstanceLen(batches[i], 0); //lodBatch.instanceLe
+    }
+    
+   this.currentLayer = this.app.scene.layers.layerList[0];
+   this.currentLayer.onPreCull = this.preDraw.bind(this);
+    
+    
+        //console.log(bb);
+    this.lodManager = new altern.LODBatchHierachy(this.culler);
+    this.lodManager.createWithAABBAndPositions(bb, positions);
+    
+    // prepare own instance array of clones with positions/index tuple
+    
+    //if (this.app.graphicsDevice.supportsBoneTextures) this.finaliseAllMatrixPalettes();
+    
+};
+
+DynamicClones.prototype.preDraw = function() {
+   
+    this.cameraPos = this.activeCamera.getPosition();
+    this.calculateFrustum();
+    this.lodManager.cull();
+    var lodBatch;
+    var i = this.lodManager.lodBatches.length;
+    var instances = this.instances;
+    var addAmt;
+    var delAmt;
+    var tarIndex;
+    var bi;
+    
+    var invalidated = false;
+    while(--i >= 0) {
+         lodBatch = this.lodManager.lodBatches[i];
+         addAmt = lodBatch.addCount;
+        delAmt = lodBatch.removeCount;
+         if (addAmt === 0 && delAmt ===0) continue;
+        invalidated = true;
+        
+        var batches = this.batches;
+        var batch = batches[0];
+        var checkInStance;
+        
+        var lenCount= lodBatch.lastInstanceLen;
+       //console.log("STarting lenCount:"+lenCount + " VS : "+batch.instanceLen);
+       var poppingOccured = false;
+        //console.log(lodBatch.addIndices.slice(0,addAmt) + " vs " + lodBatch.removeIndices.slice(0,delAmt));
+        while(--delAmt>=0) {
+            
+            tarIndex = instances[(lodBatch.removeIndices[delAmt] << 2)+3];
+            if (tarIndex < 0 || tarIndex >= batch.instanceLen) {
+                console.error("Invalid target index range:"+tarIndex);
+            }
+            if (addAmt >= 1) { // use existing to add and replace into removal slot
+                checkInStance = lodBatch.addIndices[--addAmt];
+                bi = (checkInStance << 2);
+                if (instances[bi+3] !== -1) console.error("Should add into from non-indexed position." + instances[bi+3] );
+                instances[bi+3] = tarIndex;
+                // console.log("INTO SETTING:"+tarIndex + " :: "+[instances[bi], instances[bi+1], instances[bi+2]] + " :: "+(bi>>2) + "/"+(instances.length>>2) );
+                this.setPositionAtIndex(tarIndex, instances[bi], instances[bi+1], instances[bi+2]);
+                 this.instanceIndices[tarIndex] = checkInStance;
+                
+            } else {   // attempt pop
+                poppingOccured = true;
+               // console.log("splice at:"+tarIndex);
+                var lastRenderIndex;
+                if ((lastRenderIndex=this.deletePositionAtIndex(tarIndex)) >= 0) { // pop back occured from lastIndex
+                   // console.log("POP back from:"+lastRenderIndex);
+                    // TO TEST: from last render index (lastIndex), how  to determine the instance index?
+                    //instances[(lastRenderIndex << 2)+3] = tarIndex;  // wrong, need to convert lastRenderIndex back to instance index!
+                    checkInStance = this.instanceIndices[lastRenderIndex];
+                    instances[(checkInStance << 2)+3] = tarIndex;
+                    this.instanceIndices[tarIndex] = checkInStance;
+                }
+                batch.instanceLen--;
+                lenCount--;
+            }
+           
+            instances[(lodBatch.removeIndices[delAmt] << 2)+3] = -1;
+        }
+        
+        if (poppingOccured && addAmt >= 1) {
+            console.error("SHULD NOT be...only pop only!");
+        }
+        
+        while(--addAmt>=0) {
+             checkInStance = lodBatch.addIndices[addAmt];
+             bi = (checkInStance << 2);
+             tarIndex =  batch.instanceLen++;
+           // console.log(lenCount + ", "+batch.instanceLen);
+            if (instances[bi+3] !== -1) console.error("Should push from non-indexed position." + instances[bi+3] );
+             instances[bi+3] = tarIndex;
+
+             //console.log("ADD SETTING:"+tarIndex + " :: "+[instances[bi], instances[bi+1], instances[bi+2]] + " :: "+(bi>>2) + "/"+(instances.length>>2) );
+             this.setPositionAtIndex(tarIndex, instances[bi], instances[bi+1], instances[bi+2]);
+             this.instanceIndices[tarIndex] = checkInStance;
+        }
+        
+     
+        if (lodBatch.lastInstanceLen !== lodBatch.instanceLen) {
+           // console.log(lodBatch.instanceLen + " prev:"+lodBatch.lastInstanceLen);
+            i = batches.length;
+            while(--i >=0) {
+                this.setInstanceLen(batches[i], batches[0].instanceLen); //lodBatch.instanceLen
+            }
+        }
+        
+    }
+    
+    if (invalidated && this.app.graphicsDevice.supportsBoneTextures) {
+         this.finaliseAllMatrixPalettes();
+    }
+    //console.log("ADD:"+this.lodManager.lodBatches[0].addCount + ", REMOVE:"+this.lodManager.lodBatches[0].removeCount);
+   
+};
+
+DynamicClones.prototype.calculateFrustum = function() {
+    var fru = this.frustum;
+    var planes = this.activeCamera.camera.frustum.planes;
+ 
+    var i;
+    var p;
+    var camPos = this.activeCamera.getPosition();
+    var camForward = this.activeCamera.forward;
+    var farClip = this.activeCamera.camera.farClip;
+    var nearClip = this.activeCamera.camera.nearClip;
+    
+     p = planes[5];   // near clip
+     fru.x = p[0];
+    fru.y = p[1];
+    fru.z = p[2];
+    fru.offset = fru.x * (camPos.x +camForward.x*nearClip) + fru.y * (camPos.y +camForward.y*nearClip) + fru.z * (camPos.z +camForward.z*nearClip);
+     fru = fru.next;
+    
+    p = planes[4];  // far clip
+     fru.x = p[0];
+    fru.y = p[1];
+    fru.z = p[2];
+    fru.offset = fru.x * (camPos.x +camForward.x*farClip) + fru.y * (camPos.y +camForward.y*farClip) + fru.z * (camPos.z +camForward.z*farClip);
+    fru = fru.next;
+    
+    for(i=0; i<4; i++) {
+        p = planes[i];
+        fru.x = p[0];
+        fru.y = p[1];
+        fru.z = p[2];
+        fru.offset = fru.x*camPos.x + fru.y*camPos.y + fru.z*camPos.z; //p[3];
+        fru = fru.next;
+    }
+    
+
+};
+
+
+DynamicClones.prototype.update = function(dt) {
+    /*
+    var i;
+    var vec = this.testVec;
+    var speed =dt;
+    var len = this.batches[0].instanceLen;
+    //this.testCount
+    for (i=0; i< len; i++) {
+       this.getPositionAtIndex(i, vec);
+        
+       vec.x += -speed + speed * Math.random()*2;
+       vec.y += 0;// -speed + speed* Math.random()*2;
+       vec.z += -speed + speed* Math.random()*2;
+       this.setPositionAtIndex(i, vec.x, vec.y, vec.z);
+    }
+    
+    
+    if (len && this.app.keyboard.wasPressed(pc.KEY_G)) {
+        this.deletePositionAtIndex(Math.floor(Math.random()*len));
+    }
+    */
+    
+   
+    
+};
+//*/
