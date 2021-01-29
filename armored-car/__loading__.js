@@ -9,14 +9,16 @@ pc.script.createLoadingScreen(function (app) {
         var splash = document.createElement('div');
         splash.id = 'application-splash';
         wrapper.appendChild(splash);
-        splash.style.display = 'none';
 
+        /*
+        splash.style.display = 'none';
         var logo = document.createElement('img');
         logo.src = ASSET_PREFIX + 'logo.png';
         splash.appendChild(logo);
         logo.onload = function () {
             splash.style.display = 'block';
         };
+        */
 
         var container = document.createElement('div');
         container.id = 'progress-bar-container';
