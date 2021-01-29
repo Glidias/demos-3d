@@ -1,6 +1,6 @@
 ASSET_PREFIX = "";
 SCRIPT_PREFIX = "";
-SCENE_PATH = "849137.json";
+SCENE_PATH = "838797.json";
 CONTEXT_OPTIONS = {
     'antialias': true,
     'alpha': false,
